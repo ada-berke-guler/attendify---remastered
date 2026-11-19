@@ -1,7 +1,7 @@
 COMPOSE ?= docker compose
 PG_PASSWORD ?= $(or $(shell grep -E '^POSTGRES_PASSWORD=' .env 2>/dev/null | cut -d= -f2),attendify)
 
-.PHONY: up down logs test seed reset-db tunnel web-dev
+.PHONY: up down logs test seed reset-db tunnel
 
 .env:
 	cp .env.example .env
