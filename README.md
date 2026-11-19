@@ -133,6 +133,14 @@ opened, so a QR shown on `http://localhost` would point the phone at `localhost`
 set `PUBLIC_URL` to the tunnel URL and restart the api.) Scanning with the phone's own camera
 app works: the link opens `/student/scan?token=…`, which goes straight to the face check.
 
+### Fixed address on your own domain
+
+1. Add the domain to Cloudflare (free plan) and switch its nameservers at the registrar.
+2. Zero Trust → Networks → Tunnels → **Create a tunnel** (Cloudflared). Copy the token.
+3. In the tunnel, add a **Public hostname**: `yoklama.example.com` → service `HTTP` `caddy:80`.
+4. Put the token in `.env` as `CLOUDFLARE_TUNNEL_TOKEN=...` and run
+   `docker compose --profile domain up -d`.
+
 ## Development
 
 ```bash

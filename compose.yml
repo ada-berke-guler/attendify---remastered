@@ -84,6 +84,18 @@ services:
     depends_on:
       - caddy
 
+  # Fixed address on your own domain (Cloudflare named tunnel). Create the tunnel in the
+  # Cloudflare dashboard, point its public hostname at http://caddy:80, put the token in .env.
+  tunnel-domain:
+    image: cloudflare/cloudflared:2024.12.2
+    profiles: ["domain"]
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - caddy
+    restart: unless-stopped
+
 volumes:
   pgdata:
   webdist:
