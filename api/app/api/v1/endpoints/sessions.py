@@ -6,7 +6,7 @@ from typing import AsyncIterator, List, Optional
 
 import redis
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -230,6 +230,43 @@ async def session_events(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
     )
+
+
+@router.websocket("/{session_id}/ws")
+async def session_events_ws(
+    websocket: WebSocket,
+    session_id: int,
+    token: str = Query(...),
+    r: aioredis.Redis = Depends(get_async_redis),
+) -> None:
+    """Same events as /events, over a WebSocket.
+
+    Fallback for proxies that buffer text/event-stream (Cloudflare quick tunnels do).
+    The client switches here when the SSE `hello` does not arrive in time.
+    """
+    payload = decode_events_token(token)
+    if not payload or payload.get("session_id") != session_id:
+        await websocket.close(code=4401)
+        return
+    await websocket.accept()
+    pubsub = r.pubsub()
+    await pubsub.subscribe(events.channel(session_id))
+    try:
+        await websocket.send_text(events.build_event("hello", session_id))
+        loop = asyncio.get_running_loop()
+        last_beat = loop.time()
+        while True:
+            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            if message and message.get("type") == "message":
+                await websocket.send_text(message["data"])
+            elif loop.time() - last_beat >= SSE_HEARTBEAT_SECONDS:
+                last_beat = loop.time()
+                await websocket.send_text(events.build_event("ping", session_id))
+    except (WebSocketDisconnect, RuntimeError):
+        pass
+    finally:
+        await pubsub.unsubscribe(events.channel(session_id))
+        await pubsub.aclose()
 
 
 @router.post("/{session_id}/close", response_model=SessionOut, summary="Close a session", responses=NOT_FOUND)

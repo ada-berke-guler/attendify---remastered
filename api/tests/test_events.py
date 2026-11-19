@@ -122,3 +122,26 @@ def test_sse_stream_forwards_published_events(redis_clients):
     assert frames[2].startswith("event: attendance.created\ndata: ")
     payload = json.loads(frames[2].split("data: ", 1)[1])
     assert payload["data"] == {"student_id": 7}
+
+
+def test_websocket_fallback_delivers_events(client, db, r):
+    _, _, session, _, student = setup_class(db, r)
+    headers = auth(login(client, "instructor@test.com"))
+    token = client.post(f"/api/v1/sessions/{session.id}/events-token", headers=headers).json()["token"]
+    with client.websocket_connect(f"/api/v1/sessions/{session.id}/ws?token={token}") as ws:
+        assert json.loads(ws.receive_text())["type"] == "hello"
+        client.post(f"/api/v1/sessions/{session.id}/mark-present", json={"student_id": student.id}, headers=headers)
+        event = json.loads(ws.receive_text())
+        assert event["type"] == "attendance.created"
+        assert event["data"]["student_id"] == student.id
+
+
+def test_websocket_rejects_bad_token(client, db, r):
+    import pytest
+    from starlette.websockets import WebSocketDisconnect
+
+    _, _, session, _, _ = setup_class(db, r)
+    with pytest.raises(WebSocketDisconnect) as exc:
+        with client.websocket_connect(f"/api/v1/sessions/{session.id}/ws?token=garbage") as ws:
+            ws.receive_text()
+    assert exc.value.code == 4401
