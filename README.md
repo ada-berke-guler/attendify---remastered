@@ -135,11 +135,27 @@ app works: the link opens `/student/scan?token=…`, which goes straight to the 
 
 ### Fixed address on your own domain
 
-1. Add the domain to Cloudflare (free plan) and switch its nameservers at the registrar.
-2. Zero Trust → Networks → Tunnels → **Create a tunnel** (Cloudflared). Copy the token.
-3. In the tunnel, add a **Public hostname**: `yoklama.example.com` → service `HTTP` `caddy:80`.
-4. Put the token in `.env` as `CLOUDFLARE_TUNNEL_TOKEN=...` and run
-   `docker compose --profile domain up -d`.
+With the domain on Cloudflare (free plan):
+
+```bash
+CF="docker run --rm --user root -v ./deploy/cloudflared:/root/.cloudflared cloudflare/cloudflared:2024.12.2"
+$CF tunnel login                                   # open the link, authorize the domain
+$CF tunnel create attendify                        # writes <tunnel-id>.json
+$CF tunnel route dns attendify attendify.example.com
+```
+
+Then write `deploy/cloudflared/config.yml` (the folder is gitignored):
+
+```yaml
+tunnel: <tunnel-id>
+credentials-file: /etc/cloudflared/<tunnel-id>.json
+ingress:
+  - hostname: attendify.example.com
+    service: http://caddy:80
+  - service: http_status:404
+```
+
+and run `docker compose --profile domain up -d`.
 
 ## Development
 

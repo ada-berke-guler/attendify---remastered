@@ -21,3 +21,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# Cloudflare tunnel credentials (secret)
+deploy/cloudflared/
