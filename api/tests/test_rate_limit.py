@@ -1,8 +1,18 @@
 """R1.9: Redis fixed-window rate limits."""
 from __future__ import annotations
 
+import pytest
+
+from app.core import rate_limit
 from app.core.config import settings
 from tests.conftest import auth, frame, login, make_student
+
+
+@pytest.fixture(autouse=True)
+def frozen_window(monkeypatch):
+    """Pin the clock mid-window so a test never straddles a minute boundary."""
+    monkeypatch.setattr(rate_limit, "_now", lambda: 1_800_000_030.0)
+    monkeypatch.setattr(settings, "RATE_LIMIT_LIVENESS", 8)
 
 
 def test_login_limited_per_ip(client, db):
@@ -41,7 +51,7 @@ def test_spoofed_forwarded_for_does_not_escape_bucket(client, db):
 def test_liveness_limited_per_user(client, db):
     make_student(db)
     token = login(client, "student@test.com")
-    for _ in range(settings.RATE_LIMIT_ATTENDANCE):
+    for _ in range(settings.RATE_LIMIT_LIVENESS):
         resp = client.post("/api/v1/attendance/liveness-check",
                            files={"image": ("f.jpg", frame(ear=0.3), "image/jpeg")}, headers=auth(token))
         assert resp.status_code == 200

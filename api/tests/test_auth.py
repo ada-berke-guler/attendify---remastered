@@ -85,6 +85,12 @@ class TestLogin:
         assert resp.json()["role"] == "student"
         assert "access_token" in resp.json()
 
+    def test_login_with_student_number(self, client, db):
+        make_student(db, email="num@test.com", student_number="20215555")
+        resp = client.post("/api/v1/auth/login", data={"username": "20215555", "password": "password123"})
+        assert resp.status_code == 200
+        assert resp.json()["student_number"] == "20215555"
+
     def test_wrong_password(self, client, db):
         make_student(db, email="wp@test.com")
         resp = client.post("/api/v1/auth/login", data={"username": "wp@test.com", "password": "wrong"})

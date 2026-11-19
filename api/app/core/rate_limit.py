@@ -18,8 +18,12 @@ from app.core.request_utils import client_ip
 from app.models.models import User
 
 
+def _now() -> float:
+    return time.time()
+
+
 def hit(r: redis.Redis, name: str, subject: str, limit: int, window: int = 60) -> None:
-    now = int(time.time())
+    now = int(_now())
     window_index = now // window
     key = f"rl:{name}:{subject}:{window_index}"
     pipe = r.pipeline()
@@ -55,4 +59,4 @@ def limit_by_user(name: str, limit: Callable[[], int]) -> Callable[..., None]:
 login_rate_limit = limit_by_ip("login", lambda: settings.RATE_LIMIT_LOGIN)
 password_reset_rate_limit = limit_by_ip("password-reset", lambda: settings.RATE_LIMIT_LOGIN)
 submit_rate_limit = limit_by_user("attendance-submit", lambda: settings.RATE_LIMIT_ATTENDANCE)
-liveness_rate_limit = limit_by_user("attendance-liveness", lambda: settings.RATE_LIMIT_ATTENDANCE)
+liveness_rate_limit = limit_by_user("attendance-liveness", lambda: settings.RATE_LIMIT_LIVENESS)

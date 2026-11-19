@@ -1,0 +1,30 @@
+{
+	servers {
+		# cloudflared and Docker sit on private networks: trust their
+		# X-Forwarded-* headers so the api sees the real client IP and https.
+		trusted_proxies static private_ranges
+	}
+}
+
+# ":80" locally. On a VPS set SITE_ADDRESS=attendify.example.com and Caddy
+# obtains a certificate automatically.
+{$SITE_ADDRESS::80} {
+	handle /api/* {
+		request_body {
+			max_size 30MB
+		}
+		# flush_interval -1 streams Server-Sent Events without buffering.
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv
+		encode zstd gzip
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

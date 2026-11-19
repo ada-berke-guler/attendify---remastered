@@ -1,0 +1,90 @@
+name: attendify
+
+# One command:  cp .env.example .env && docker compose up --build
+# Phone test:   docker compose --profile tunnel up --build   (prints a https://*.trycloudflare.com URL)
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: attendify
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-attendify}
+      POSTGRES_DB: attendify
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attendify -d attendify"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # Everything in Redis is short-lived by design (QR nonces, liveness tickets,
+    # rate-limit windows, pub/sub), so no persistence.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  face:
+    build: ./face
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://attendify:${POSTGRES_PASSWORD:-attendify}@db:5432/attendify
+      REDIS_URL: redis://redis:6379/0
+      FACE_SERVICE_URL: http://face:8001
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      face:
+        condition: service_started
+    restart: unless-stopped
+
+  # Builds the SPA and copies it into the shared volume, then exits.
+  web:
+    build: ./web
+    volumes:
+      - webdist:/srv
+
+  caddy:
+    image: caddy:2.8
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - webdist:/srv:ro
+      - caddy_data:/data
+    depends_on:
+      web:
+        condition: service_completed_successfully
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  tunnel:
+    image: cloudflare/cloudflared:2024.12.2
+    profiles: ["tunnel"]
+    command: ["tunnel", "--no-autoupdate", "--url", "http://caddy:80"]
+    depends_on:
+      - caddy
+
+volumes:
+  pgdata:
+  webdist:
+  caddy_data:

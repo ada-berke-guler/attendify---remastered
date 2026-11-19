@@ -46,12 +46,18 @@ def user_out(user: User, db: Session) -> UserOut:
 @router.post(
     "/login",
     response_model=Token,
-    summary="Log in with email and password (OAuth2 password form)",
+    summary="Log in with email (or student number) and password",
     responses={401: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},
     dependencies=[Depends(login_rate_limit)],
 )
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> Token:
-    user = db.query(User).filter(User.email == form_data.username).first()
+    identifier = form_data.username.strip()
+    if "@" in identifier:
+        user = db.query(User).filter(User.email == identifier).first()
+    else:  # students may sign in with their student number
+        user = db.query(User).join(Student, Student.user_id == User.id).filter(
+            Student.student_number == identifier
+        ).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -55,7 +55,10 @@ class Settings(BaseSettings):
 
     # Rate limits (per minute)
     RATE_LIMIT_LOGIN: int = 10
-    RATE_LIMIT_ATTENDANCE: int = 30
+    RATE_LIMIT_ATTENDANCE: int = 30   # /attendance/submit, per user
+    # Blink detection needs a few frames per second, so 30/min would lock a student out
+    # after ~12 s of trying. 120/min still caps a scripted client at 2 frames/s.
+    RATE_LIMIT_LIVENESS: int = 120
 
     SEED_DEMO_DATA: bool = False
 
