@@ -5,6 +5,12 @@
 Classroom attendance with a rotating QR code, a blink-based liveness check and face
 verification. FastAPI + PostgreSQL/pgvector + Redis + React, one `docker compose up`.
 
+> **v2 of a team project.** Attendify started as our graduation project
+> ([v1, team repository](https://github.com/ada-berke-guler/attendify), also tagged
+> [`v1.0-graduation`](../../tree/v1.0-graduation) here). v2 reworks the backend (pgvector
+> matching, Redis-backed QR nonces, liveness tickets, rate limits and live events), merges the
+> three frontends into one app and packages everything to run with a single command.
+
 ## Quick start
 
 ```bash
