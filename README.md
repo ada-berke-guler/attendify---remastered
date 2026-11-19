@@ -11,6 +11,20 @@ verification. FastAPI + PostgreSQL/pgvector + Redis + React, one `docker compose
 > matching, Redis-backed QR nonces, liveness tickets, rate limits and live events), merges the
 > three frontends into one app and packages everything to run with a single command.
 
+## Screenshots
+
+| Instructor: live session | Instructor: dashboard |
+|---|---|
+| ![Live session with rotating QR, live feed, pending request and manual attendance](docs/screenshots/04-instructor-live-session.png) | ![Instructor dashboard](docs/screenshots/03-instructor-dashboard.png) |
+| **Instructor: at-risk report** | **Admin: students** |
+| ![Reports](docs/screenshots/10-instructor-reports.png) | ![Admin panel](docs/screenshots/02-admin-students.png) |
+
+| Sign in | Student home | QR scan | Face check (no face → retry) | Checked in | Face registration |
+|---|---|---|---|---|---|
+| ![](docs/screenshots/01-login.png) | ![](docs/screenshots/05-student-dashboard.png) | ![](docs/screenshots/06-student-scan.png) | ![](docs/screenshots/07-student-verify-no-face.png) | ![](docs/screenshots/08-student-confirmation.png) | ![](docs/screenshots/09-student-face-setup.png) |
+
+<sub>Camera views show the browser's synthetic test feed instead of a real face.</sub>
+
 ## Quick start
 
 ```bash

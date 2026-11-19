@@ -527,8 +527,10 @@ export default function LiveSession() {
                   </div>
                 </div>
               )}
-              {session?.title && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">{session.title}</p>
+              {session?.started_at && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  Started {new Date(session.started_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </p>
               )}
             </div>
 

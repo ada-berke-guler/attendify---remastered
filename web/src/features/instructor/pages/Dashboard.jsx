@@ -87,18 +87,17 @@ export default function Dashboard() {
         const active = sorted.filter(s => s.status === 'active' || s.status === 'open')
         setActiveSessions(active)
 
-        // count total students across all courses
+        // count distinct students across all courses (one student can take several)
         if (courseList.length > 0) {
-          const counts = await Promise.all(
+          const rosters = await Promise.all(
             courseList.map(c =>
-              api.get(`/courses/${c.id}/students`).then(r => {
-                const arr = Array.isArray(r) ? r : (r?.students ?? [])
-                return arr.length
-              }).catch(() => c.student_count ?? 0)
+              api.get(`/courses/${c.id}/students`)
+                .then(r => (Array.isArray(r) ? r : []))
+                .catch(() => [])
             )
           )
           if (!cancelled) {
-            setTotalStudents(counts.reduce((a, b) => a + b, 0))
+            setTotalStudents(new Set(rosters.flat().map(s => s.student_id)).size)
           }
         } else {
           setTotalStudents(0)
