@@ -50,7 +50,7 @@ services:
       redis:
         condition: service_healthy
       face:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   # Builds the SPA and copies it into the shared volume, then exits.
